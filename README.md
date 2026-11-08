@@ -21,4 +21,4 @@ Then open http://localhost:8765.
 
 ## Deploy
 
-Push to `main`; GitHub Pages publishes the repository root.
+Run `./deploy.sh "message"`. It bumps the `?v=` on `styles.css` and `script.js` (GitHub Pages lets browsers cache them for 10 minutes, so a stale copy can mix with a new `index.html`), commits and pushes to `main`. GitHub Pages publishes the repository root.
