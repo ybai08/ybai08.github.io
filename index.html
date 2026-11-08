@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Raleway:wght@400;500;600;700&family=Open+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Raleway:wght@400;500;600;700&family=Open+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&family=Caveat:wght@600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -50,15 +50,24 @@
 
       <div class="hero__right">
         <div class="hero__photo">
-          <div class="hero__terminal" aria-hidden="true">
+          <p class="term__hint" aria-hidden="true">
+            <span class="term__hint-text">psst&hellip; <span class="t-click">click</span><span class="t-tap">tap</span> &amp; start typing<br />for easter eggs</span>
+            <svg class="term__hint-arrow" viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M6 10 C 40 4, 92 18, 104 70" />
+              <path d="M90 60 L 105 74 L 112 54" />
+            </svg>
+          </p>
+          <div class="hero__terminal" id="terminal">
             <div class="term__bar"><i></i><i></i><i></i><span>~/yang</span></div>
-            <pre><span class="c">$</span> whoami
+            <pre class="term__screen" aria-live="polite"><span class="c">$</span> whoami
 turing scholar (cs honors) + math @ ut austin
 <span class="c">$</span> cat focus.txt
 web, mobile &amp; backend apps
 ai, ml systems &amp; tooling
 open source
-<span class="c">$</span> <span class="cursor">_</span></pre>
+<span class="c">$</span> <span class="term__cursor is-idle"></span></pre>
+            <input class="term__input" type="text" aria-label="Terminal: type a command, then press Enter. Type help to see commands." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+          </div>
           </div>
         </div>
       </div>

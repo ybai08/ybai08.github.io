@@ -72,47 +72,274 @@ if ("IntersectionObserver" in window) {
   });
 }
 
-// ---------- hero terminal: types commands on a loop ----------
-const TERMINAL_SCRIPT = [
-  { cmd: "whoami", out: ["turing scholar (cs honors) + math @ ut austin"] },
-  { cmd: "cat focus.txt", out: ["web, mobile & backend apps", "ai, ml systems & tooling", "open source"] },
-  { cmd: "ls projects/", out: ["spartan/  docket/  soup/  surfsense/"] },
-];
+// ---------- hero terminal: plays an intro once, then you can type in it ----------
+const term = (() => {
+  const box = document.getElementById("terminal");
+  if (!box) return null;
+  const screen = box.querySelector(".term__screen");
+  const input = box.querySelector(".term__input");
+  const hint = document.querySelector(".term__hint");
 
-const termPre = document.querySelector(".hero__terminal pre");
-const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const link = (href, text) => `<a href="${href}" target="_blank" rel="noopener">${esc(text)}</a>`;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function runTerminal() {
-  const prompt = '<span class="c">$</span> ';
-  // wait for the terminal's entrance animation
-  await sleep(1500);
-  for (;;) {
-    let done = ""; // finished lines (HTML)
-    for (const step of TERMINAL_SCRIPT) {
-      for (let n = 0; n <= step.cmd.length; n++) {
-        termPre.innerHTML = done + prompt + esc(step.cmd.slice(0, n)) + '<span class="term__cursor"></span>';
-        await sleep(55 + Math.random() * 70);
-      }
-      await sleep(320);
-      done += prompt + esc(step.cmd) + "\n";
-      for (const line of step.out) {
-        done += esc(line) + "\n";
-        termPre.innerHTML = done + '<span class="term__cursor"></span>';
-        await sleep(110);
-      }
-      await sleep(650);
+  // ----- tiny filesystem (edit freely: plain text, one string per line) -----
+  const PROJECTS = {
+    spartan: { url: "https://thespartan.app", lines: ["spartan: social fitness app for iOS", "300+ users, 62% week-1 retention", "react native + firebase, built solo over 3+ years"] },
+    docket: { url: "https://docketapp.tech", lines: ["docket: mini-games for civics", "built at hacktx 2026; invited by meta to its ai hackathon final", "react native, typescript, postgresql, python"] },
+    kaggriculture: { url: "https://www.kaggle.com/competitions/kaggriculture", lines: ["kaggriculture: ai agent for google's farming game", "peaked 39th of 10,192 teams (top 0.4%)", "python agent, tuned on a custom rust simulator"] },
+    soup: { url: "https://github.com/MakazhanAlpamys/Soup", lines: ["soup: llm fine-tuning framework (10k stars)", "training lead; 44 merged prs", "cut peak training vram 46%"] },
+    surfsense: { url: "https://github.com/MODSetter/SurfSense", lines: ["surfsense: local-ai desktop app (16k stars)", "38 merged prs", "server-pushed updates cut refetches ~7x"] },
+  };
+  const FILES = {
+    "focus.txt": ["web, mobile & backend apps", "ai, ml systems & tooling", "open source"],
+    "hobbies.txt": ["chess", "hiking", "protein-folding research"],
+    "mysterious-letter.txt": [
+      "To Whom it May Concern,",
+      "",
+      "Although I don't know him that well, I can assure you that Yang is the most handsome, hardworking, diligent, intelligent (did i mention handsome?), SWE in the world.",
+      "",
+      "- Yango Mango",
+    ],
+    "phone.txt": null, // built below (tap-to-call link)
+    ".secret": ["you found the hidden file. nice digging.", "", "one more: try  sudo hire yang"],
+  };
+  const PHONE_HTML = ["You've found my phone number!", link("tel:+14694934203", "469-493-4203")];
+  const OPENABLE = {
+    github: "https://github.com/ybai08",
+    linkedin: "https://linkedin.com/in/yangbai2026",
+    email: "mailto:yangbai2026@gmail.com",
+    ...Object.fromEntries(Object.entries(PROJECTS).map(([k, v]) => [k, v.url])),
+  };
+
+  let cwd = "~";
+  const listDir = (dir, all) => {
+    if (dir === "~") {
+      const names = Object.keys(FILES).filter((f) => all || !f.startsWith("."));
+      return ["projects/", ...names];
     }
-    termPre.innerHTML = done + prompt + '<span class="term__cursor is-idle"></span>';
-    await sleep(6000);
-    termPre.classList.add("is-clearing");
-    await sleep(450);
-    termPre.innerHTML = "";
-    termPre.classList.remove("is-clearing");
-    await sleep(300);
-  }
-}
-if (termPre && !reduceMotion) runTerminal();
+    if (dir === "~/projects") return Object.keys(PROJECTS).map((p) => p + ".md");
+    return null;
+  };
+  const resolve = (p) => {
+    if (!p || p === "~") return "~";
+    p = p.replace(/\/+$/, "");
+    if (p === "..") return "~";
+    if (p === ".") return cwd;
+    if (p.startsWith("~/")) return p;
+    return cwd === "~" ? "~/" + p : cwd + "/" + p;
+  };
+  const readFile = (path) => {
+    const full = resolve(path);
+    const m = full.match(/^~\/projects\/([\w-]+?)(\.md)?$/);
+    if (m && PROJECTS[m[1]]) return { lines: PROJECTS[m[1]].lines.map(esc).concat(["", "open it: " + esc("open " + m[1])]) };
+    const name = full.replace(/^~\//, "");
+    if (name === "phone.txt") return { lines: PHONE_HTML };
+    if (Object.prototype.hasOwnProperty.call(FILES, name)) return { lines: FILES[name].map(esc) };
+    if (full === "~/projects") return { err: `cat: ${esc(path)}: is a directory` };
+    return { err: `cat: ${esc(path)}: no such file` };
+  };
+
+  // ----- screen -----
+  const lines = []; // finished lines (HTML)
+  let buffer = "";
+  let ready = false;
+  const history = [];
+  let hIndex = 0;
+  const prompt = () => `<span class="c">${cwd === "~" ? "" : esc(cwd.replace("~/", "")) + " "}$</span> `;
+  const render = (cursorIdle = true) => {
+    screen.innerHTML =
+      (lines.length ? lines.join("\n") + "\n" : "") +
+      (ready ? prompt() + esc(buffer) + `<span class="term__cursor${cursorIdle ? " is-idle" : ""}"></span>` : "");
+    screen.scrollTop = screen.scrollHeight;
+  };
+  const out = (...ls) => lines.push(...ls);
+
+  const COMMANDS = {
+    help: () =>
+      out(
+        "commands:",
+        "  ls [-a]        list files",
+        "  cat &lt;file&gt;     read a file",
+        "  cd &lt;dir&gt;       change directory",
+        "  open &lt;name&gt;    open a project or link",
+        "  whoami  pwd  date  echo  history  clear",
+        "  ...and a few you'll have to find"
+      ),
+    ls: (args) => {
+      const all = args.includes("-a") || args.includes("-la");
+      const target = args.find((a) => !a.startsWith("-"));
+      const items = listDir(resolve(target || "."), all);
+      if (!items) return out(`ls: ${esc(target)}: no such directory`);
+      out(items.map((i) => (i.endsWith("/") ? `<span class="d">${esc(i)}</span>` : esc(i))).join("   "));
+    },
+    cd: (args) => {
+      const t = resolve(args[0]);
+      if (t === "~" || t === "~/projects") cwd = t;
+      else out(`cd: ${esc(args[0])}: no such directory`);
+    },
+    pwd: () => out(cwd === "~" ? "/home/yang" : "/home/yang/projects"),
+    cat: (args) => {
+      if (!args.length) return out("cat: which file? try  ls");
+      for (const a of args) {
+        const r = readFile(a);
+        r.err ? out(r.err) : out(...r.lines);
+      }
+    },
+    open: (args) => {
+      const key = (args[0] || "").toLowerCase().replace(/\.md$/, "");
+      if (!OPENABLE[key]) return out("open: try one of " + Object.keys(OPENABLE).join(", "));
+      out("opening " + esc(key) + "...");
+      window.open(OPENABLE[key], "_blank", "noopener");
+    },
+    whoami: () => out("turing scholar (cs honors) + math @ ut austin"),
+    date: () => out(esc(new Date().toString())),
+    echo: (args) => out(esc(args.join(" "))),
+    history: () => out(...history.map((h, i) => `${String(i + 1).padStart(3)}  ${esc(h)}`)),
+    clear: () => (lines.length = 0),
+    neofetch: () =>
+      out(
+        '<span class="c">yang</span>@<span class="c">portfolio</span>',
+        "-------------------",
+        "os      html / css / js",
+        "host    github pages",
+        "shell   hand-rolled, no libraries",
+        "theme   monochrome"
+      ),
+    sudo: (args) => {
+      if (args.join(" ").toLowerCase() === "hire yang") {
+        out("[sudo] password for recruiter: ********", "access granted.", `next step: ${link("mailto:yangbai2026@gmail.com?subject=Let's%20talk", "yangbai2026@gmail.com")}`);
+      } else out("nice try. this incident will be reported.");
+    },
+    rm: () => out("rm: not on my watch."),
+    exit: () => out("there is no escape. (try scrolling down instead)"),
+    vim: () => out("you are now stuck in vim forever. just kidding: no vim here."),
+    hi: () => out("hey! type  help  to look around."),
+  };
+  COMMANDS.hello = COMMANDS.hi;
+  COMMANDS.ll = (a) => COMMANDS.ls(["-a", ...a]);
+
+  const run = (raw) => {
+    const line = raw.trim();
+    out(prompt() + esc(raw));
+    if (!line) return;
+    history.push(line);
+    hIndex = history.length;
+    const [cmd, ...args] = line.split(/\s+/);
+    const fn = COMMANDS[cmd.toLowerCase()];
+    fn ? fn(args) : out(`command not found: ${esc(cmd)}. try  help`);
+  };
+
+  const complete = () => {
+    const parts = buffer.split(/\s+/);
+    const last = parts[parts.length - 1];
+    const pool =
+      parts.length === 1
+        ? Object.keys(COMMANDS)
+        : parts[0] === "open"
+        ? Object.keys(OPENABLE)
+        : (listDir(cwd, true) || []);
+    const hits = pool.filter((x) => x.startsWith(last));
+    if (hits.length === 1) {
+      parts[parts.length - 1] = hits[0];
+      buffer = parts.join(" ");
+    } else if (hits.length > 1) {
+      out(prompt() + esc(buffer), hits.map(esc).join("   "));
+    }
+  };
+
+  // ----- input -----
+  const markTyped = () => {}; // hint stays visible the whole time
+  input.addEventListener("input", () => {
+    buffer = input.value;
+    markTyped();
+    render(false);
+  });
+  input.addEventListener("keydown", (e) => {
+    if (!ready) return;
+    if (e.key === "Enter") {
+      e.preventDefault();
+      run(buffer);
+      buffer = input.value = "";
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      complete();
+      input.value = buffer;
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      hIndex = Math.max(0, Math.min(history.length, hIndex + (e.key === "ArrowUp" ? -1 : 1)));
+      buffer = input.value = history[hIndex] || "";
+    } else if (e.key === "l" && e.ctrlKey) {
+      e.preventDefault();
+      lines.length = 0;
+    } else if (e.key === "c" && e.ctrlKey) {
+      out(prompt() + esc(buffer) + "^C");
+      buffer = input.value = "";
+    } else return;
+    render();
+  });
+  input.addEventListener("focus", () => box.classList.add("is-focused"));
+  input.addEventListener("blur", () => box.classList.remove("is-focused"));
+  box.addEventListener("click", (e) => {
+    if (e.target.closest("a")) return;
+    input.focus({ preventScroll: true });
+  });
+  // start typing anywhere while the terminal is on screen
+  document.addEventListener("keydown", (e) => {
+    if (!ready || e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+    if (document.activeElement === input || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName)) return;
+    const r = box.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) return;
+    input.focus({ preventScroll: true });
+  });
+
+  // ----- intro: types a few commands once, then hands over -----
+  const INTRO = [
+    { cmd: "whoami", out: ["turing scholar (cs honors) + math @ ut austin"] },
+    { cmd: "cat focus.txt", out: FILES["focus.txt"] },
+  ];
+  let skip = false;
+  const typeCmd = async (cmd) => {
+    for (let n = 0; n <= cmd.length; n++) {
+      if (skip) break;
+      screen.innerHTML = (lines.length ? lines.join("\n") + "\n" : "") + prompt() + esc(cmd.slice(0, n)) + '<span class="term__cursor"></span>';
+      await sleep(55 + Math.random() * 70);
+    }
+  };
+  const start = async (animate) => {
+    if (animate) {
+      document.addEventListener("keydown", () => (skip = true), { once: true });
+      box.addEventListener("click", () => (skip = true), { once: true });
+      await sleep(1500);
+      for (const step of INTRO) {
+        if (!skip) {
+          await typeCmd(step.cmd);
+          await sleep(skip ? 0 : 320);
+        }
+        out(prompt() + esc(step.cmd));
+        for (const l of step.out) {
+          out(esc(l));
+          if (!skip) {
+            render(false);
+            await sleep(110);
+          }
+        }
+        if (!skip) await sleep(500);
+      }
+    } else {
+      for (const step of INTRO) out(prompt() + esc(step.cmd), ...step.out.map(esc));
+    }
+    out('<span class="m">type  help  or  ls  to look around</span>');
+    ready = true;
+    render();
+    box.classList.add("is-ready");
+    if (hint) hint.classList.add("is-shown");
+  };
+  if (hint) requestAnimationFrame(() => hint.classList.add("is-shown")); // visible from page load
+  start(!reduceMotion);
+  return { run };
+})();
 
 // ---------- hero mouse parallax (CSS reads --mx / --my) ----------
 const hero = document.querySelector(".hero");

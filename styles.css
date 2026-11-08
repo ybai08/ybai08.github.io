@@ -2400,3 +2400,201 @@ a {
 :root {
   --nav-h: 0px;
 }
+
+/* ==========================================================
+   INTERACTIVE TERMINAL + HINT
+   ========================================================== */
+.hero__terminal {
+  position: relative;
+  cursor: text;
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.hero__terminal.is-focused {
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 0 3px rgba(139, 92, 246, 0.18);
+}
+
+/* fixed height; long output scrolls inside the window */
+.hero__terminal pre.term__screen {
+  height: calc(9 * 1.75em + 40px);
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.term__screen::-webkit-scrollbar {
+  display: none;
+}
+
+.term__screen .d {
+  color: #9ec5ff;
+}
+
+.term__screen .m {
+  color: #8a8a8a;
+}
+
+.term__screen a {
+  color: #e9e9e9;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.term__screen a:hover {
+  color: var(--accent);
+}
+
+/* real input, kept invisible; the screen draws what you type */
+.term__input {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px; /* stops iOS from zooming on focus */
+  pointer-events: none;
+}
+
+/* hand-drawn hint */
+.term__hint {
+  position: absolute;
+  z-index: 3;
+  right: calc(100% - 70px);
+  bottom: calc(100% - 6px);
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin: 0;
+  font-family: "Caveat", cursive;
+  font-size: clamp(20px, 1.7vw, 26px);
+  line-height: 1.05;
+  color: #e9e9e9;
+  white-space: nowrap;
+  text-align: right;
+  opacity: 0;
+  pointer-events: none;
+  transform: rotate(-4deg);
+  transition: opacity 0.5s ease;
+}
+
+.term__hint-text {
+  margin-bottom: 52px;
+}
+
+.term__hint-arrow {
+  width: 78px;
+  height: 60px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.term__hint.is-shown {
+  opacity: 0.9;
+}
+
+.term__hint.is-done {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .term__hint-arrow path {
+    stroke-dasharray: 160;
+    stroke-dashoffset: 160;
+    transition: stroke-dashoffset 0.9s 0.3s ease;
+  }
+
+  .term__hint.is-shown .term__hint-arrow path {
+    stroke-dashoffset: 0;
+  }
+
+  .term__hint.is-shown:not(.is-done) .term__hint-text {
+    animation: hintNudge 2.4s 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes hintNudge {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-4px, -3px); }
+}
+
+@media (max-width: 960px) and (min-width: 761px) {
+  .term__hint {
+    right: calc(100% - 40px);
+    font-size: 19px;
+  }
+}
+
+@media (max-width: 760px) {
+  .term__hint {
+    right: auto;
+    left: 0;
+    bottom: calc(100% + 4px);
+    font-size: 21px;
+  }
+  .term__hint-text {
+    margin-bottom: 0;
+  }
+  .term__hint-arrow {
+    width: 52px;
+    height: 40px;
+  }
+}
+
+/* hint sits above the terminal on the dark side, arrow curling down-left into it */
+.term__hint {
+  right: auto;
+  left: 30%;
+  bottom: calc(100% + 2px);
+  text-align: left;
+  transform: rotate(-3deg);
+}
+
+.term__hint-arrow {
+  order: -1;
+  transform: scaleX(-1);
+  margin-bottom: -18px;
+}
+
+.term__hint-text {
+  margin-bottom: 30px;
+}
+
+@media (max-width: 960px) and (min-width: 761px) {
+  .term__hint {
+    right: auto;
+    left: 18%;
+  }
+}
+
+@media (max-width: 760px) {
+  .term__hint {
+    left: 14%;
+  }
+  .term__hint-text {
+    margin-bottom: 18px;
+  }
+}
+
+/* say "tap" on touch screens */
+.t-tap {
+  display: none;
+}
+
+@media (hover: none) {
+  .t-click { display: none; }
+  .t-tap { display: inline; }
+}
+
+/* phones: leave room for the hint above the terminal */
+@media (max-width: 760px) {
+  .hero__right {
+    margin-top: 96px;
+  }
+}
