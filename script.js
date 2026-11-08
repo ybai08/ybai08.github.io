@@ -433,3 +433,27 @@ if (tabLinks.length) {
   window.addEventListener("hashchange", () => setTimeout(markCurrent, 50));
   markCurrent();
 }
+
+// ---------- top tabs: animated scroll instead of a jump ----------
+tabLinks.forEach((a) =>
+  a.addEventListener("click", (e) => {
+    const target = document.querySelector(a.getAttribute("href"));
+    if (!target) return;
+    e.preventDefault();
+    const navH = document.querySelector(".topnav").offsetHeight;
+    const startY = window.scrollY;
+    const endY = Math.max(0, target.getBoundingClientRect().top + startY - navH);
+    const dist = endY - startY;
+    const dur = Math.min(1200, 450 + Math.abs(dist) * 0.25);
+    const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const t0 = performance.now();
+    document.documentElement.style.scrollBehavior = "auto"; // we animate it ourselves
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / dur);
+      window.scrollTo(0, startY + dist * ease(t));
+      if (t < 1) requestAnimationFrame(step);
+      else history.replaceState(null, "", a.getAttribute("href"));
+    };
+    requestAnimationFrame(step);
+  })
+);

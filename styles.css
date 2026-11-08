@@ -2675,3 +2675,41 @@ a {
 .topnav a {
   pointer-events: auto;
 }
+
+/* ==========================================================
+   TOP TABS: solid bar (overrides the floating version above)
+   ========================================================== */
+:root {
+  --nav-h: 56px;
+}
+
+.topnav {
+  position: sticky;
+  top: 0;
+  left: auto;
+  right: auto;
+  height: var(--nav-h);
+  padding: 0 clamp(20px, 4vw, 64px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: var(--black);
+  border-bottom: 1px solid #1f1f1f;
+  mix-blend-mode: normal;
+  pointer-events: auto;
+}
+
+.topnav a {
+  color: #fff;
+}
+
+.showcase {
+  padding-top: calc(var(--nav-h) + 8px);
+}
+
+@media (max-width: 760px) {
+  .topnav {
+    top: 0;
+    justify-content: center;
+  }
+}
