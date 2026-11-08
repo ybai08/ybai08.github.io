@@ -410,3 +410,26 @@ if (showcases.length && !reduceMotion) {
   window.addEventListener("resize", onScroll);
   update();
 }
+
+// ---------- top tabs: underline the section in view ----------
+const tabLinks = [...document.querySelectorAll(".topnav a")];
+if (tabLinks.length) {
+  const targets = tabLinks.map((a) => document.querySelector(a.getAttribute("href")));
+  const markCurrent = () => {
+    const y = window.innerHeight * 0.4;
+    let current = -1;
+    targets.forEach((t, i) => {
+      if (t && t.getBoundingClientRect().top <= y) current = i;
+    });
+    tabLinks.forEach((a, i) => a.classList.toggle("is-current", i === current));
+  };
+  let raf = 0;
+  const schedule = () => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(markCurrent);
+  };
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", schedule);
+  window.addEventListener("hashchange", () => setTimeout(markCurrent, 50));
+  markCurrent();
+}

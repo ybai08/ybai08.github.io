@@ -2598,3 +2598,80 @@ a {
     margin-top: 96px;
   }
 }
+
+/* ==========================================================
+   TOP TABS (fixed, minimal; inverts over light and dark)
+   ========================================================== */
+.topnav {
+  position: fixed;
+  z-index: 60;
+  top: 22px;
+  right: clamp(20px, 4vw, 64px);
+  display: flex;
+  gap: clamp(20px, 2.6vw, 40px);
+  mix-blend-mode: difference;
+}
+
+.topnav a {
+  position: relative;
+  padding: 6px 0;
+  font-family: var(--font-head);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #fff;
+  opacity: 0.75;
+  transition: opacity 0.2s;
+}
+
+.topnav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 1.5px;
+  background: currentColor;
+  transition: width 0.25s;
+}
+
+.topnav a:hover,
+.topnav a.is-current {
+  opacity: 1;
+}
+
+.topnav a:hover::after,
+.topnav a.is-current::after {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .topnav {
+    animation: fadeIn 0.8s 1.2s ease backwards;
+  }
+}
+
+@media (max-width: 760px) {
+  .topnav {
+    left: 0;
+    right: 0;
+    top: 14px;
+    justify-content: center;
+    gap: 22px;
+  }
+  .topnav a {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+  }
+}
+
+/* the bar itself never blocks clicks, only the tabs do */
+.topnav {
+  pointer-events: none;
+}
+
+.topnav a {
+  pointer-events: auto;
+}
