@@ -337,7 +337,7 @@ const term = (() => {
     if (hint) hint.classList.add("is-shown");
   };
   if (hint) requestAnimationFrame(() => hint.classList.add("is-shown")); // visible from page load
-  start(!reduceMotion);
+  start(false); // no typing intro: the first lines are already on screen at load
   return { run };
 })();
 
